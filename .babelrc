@@ -1,12 +1,17 @@
 {
-  "plugins": [
+  "presets": [
     [
-      "transform-runtime",
-    {
-      "polyfill": false,
-      "regenerator": true
-    }
+      "@babel/env",
+      {
+        "targets": {
+          "node": "8.10"
+        },
+        "shippedProposals": true,
+        "useBuiltIns": "usage"
+      }
     ]
   ],
-  "presets": ["es2015", "stage-0"]
+  "plugins": [
+    "@babel/plugin-proposal-object-rest-spread"
+  ]
 }

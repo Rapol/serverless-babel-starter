@@ -1,33 +1,54 @@
 ![logo](./logo.png)
 [![Greenkeeper badge](https://badges.greenkeeper.io/postlight/serverless-babel-starter.svg)](https://greenkeeper.io/)
 
-Postlight's Modern Serverless Starter Kit adds a light layer on top of the Serverless framework, giving you the latest in modern JavaScript (ES6 via Webpack + Babel, testing with Jest, linting with ESLint, and formatting with Prettier), the ease and power of Serverless, and a few handy helpers (like functions for handling warm functions and response helpers).
+# Serverless Boilerplate
+
+Rapol's version of Postlight's Modern Serverless Starter Kit adds a light layer on top of the Serverless framework, giving you the latest in modern JavaScript (ES6 via Webpack + Babel, mocha, and linting with ESLint), the ease and power of Serverless, and a few handy helpers (like functions for handling warm functions and response helpers).
 
 Once installed, you can create and deploy functions with the latest ES6 features in minutes, with linting and formatting baked in.
-
-Read more about it in [this handy introduction](https://trackchanges.postlight.com/introducing-postlights-modern-serverless-starter-kit-53ebfbf4459f).
-
-Note: Currently, this starter kit specifically targets AWS.
 
 ## Install
 
 ```bash
 # If you don't already have the serverless cli installed, do that
-yarn global add serverless
-
-# Use the serverless cli to install this repo
-serverless install --url https://github.com/postlight/serverless-babel-starter
-
-# cd into project and set it up
-cd serverless-babel-starter
-
-# The bootstrap command renames the project folder and project in package.json and serverless.yml
-# and initializes a git repo
-yarn bootstrap your-project-name 
+npm install -g serverless 
 
 # Install dependencies
-yarn install
+npm install
 ```
+
+## Deployment
+
+AWS profile, NODE_ENV and, REGION must be set prior deploying or testing. Assuming you've already set up your default AWS credentials, modify the scripts/env/dev-us-east-1.sh file to use your AWS_PROFILE.
+
+To deploy dev run:
+```
+soruce scripts/env/dev-us-east-1.sh
+npm run deploy:dev
+```
+
+`npm deploy:env` will deploy the environment set by NODE_ENV. You can deploy to `stage` or `production`
+with:
+
+```
+npm deploy:stage
+
+# -- or --
+
+npm deploy:production
+```
+
+NOTE: We are using NODE_ENV as the name of the serverless stage instead of passing it as a stage argument
+
+`NODE_ENV=dev sls deploy`
+
+After you've deployed, the output of the deploy script will give you the API endpoint
+for your deployed function(s), so you should be able to test the deployed API via that URL..
+
+Note: Currently, this starter kit specifically targets AWS.
+
+
+TODO: Update the rest of the readme
 
 ## Development
 

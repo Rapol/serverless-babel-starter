@@ -1,0 +1,11 @@
+{
+    "pathParameters": {
+    },
+    "requestContext": {
+      "resourcePath": "/app-info",
+      "httpMethod": "GET",
+      "identity": {
+        "cognitoIdentityId": null
+      }
+    }
+  }

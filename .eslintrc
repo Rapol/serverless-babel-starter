@@ -1,19 +1,35 @@
 {
-  "extends": [
-    "airbnb",
-    "prettier"
+  "env": {
+    "es6": true,
+    "mocha": true,
+    "node": true
+  },
+
+  "plugins": [
+    "mocha"
   ],
+
+  "extends": "airbnb-base",
+
+  "rules": {
+    "indent": [ "error", 4 ],
+    "no-underscore-dangle": [ "error", { "allowAfterThis": true }],
+    "no-trailing-spaces": ["error", { "skipBlankLines": true }],
+    "no-unused-vars": ["warn", {"vars": "local", "args": "none"}],
+    "max-len": ["error", {
+      "code": 120,
+      "tabWidth": 4,
+      "ignoreUrls": false,
+      "ignoreTrailingComments": true,
+      "ignoreComments": true
+    }],
+    "mocha/no-exclusive-tests": "error"
+  },
+
   "globals": {
-    "afterAll",
-    "beforeAll",
-    "beforeEach",
-    "describe",
-    "expect",
-    "fit",
-    "it",
-    "jasmine",
-    "xit",
-    "jest"
+    "fit": false,
+    "jasmine": false,
+    "xit": false,
+    "jest": false
   }
 }
-
