@@ -3,9 +3,12 @@
 
 # Serverless Boilerplate
 
-Rapol's version of Postlight's Modern Serverless Starter Kit adds a light layer on top of the Serverless framework, giving you the latest in modern JavaScript (ES6 via Webpack + Babel, mocha, and linting with ESLint), the ease and power of Serverless, and a few handy helpers (like functions for handling warm functions and response helpers).
+Rapol's version of Postlight's Modern Serverless Starter Kit adds a light layer on top of the Serverless framework, giving you the latest in modern JavaScript (ES6 via Webpack + Babel, mocha, and linting with ESLint), the ease and power of Serverless, and a few handy helpers (like router for your service pattern, handling warm functions and response helpers)
 
 Once installed, you can create and deploy functions with the latest ES6 features in minutes, with linting and formatting baked in.
+
+Note: This uses [lambda-utils](https://github.com/Rapol/lambda-utils) which is a library that gives
+us the utility functions that we talk about before.
 
 ## Install
 
@@ -38,47 +41,198 @@ npm deploy:stage
 npm deploy:production
 ```
 
-NOTE: We are using NODE_ENV as the name of the serverless stage instead of passing it as a stage argument
-
-`NODE_ENV=dev sls deploy`
-
 After you've deployed, the output of the deploy script will give you the API endpoint
 for your deployed function(s), so you should be able to test the deployed API via that URL..
 
 Note: Currently, this starter kit specifically targets AWS.
 
-
 TODO: Update the rest of the readme
+
+## Serverless Configuration
+
+### Stage convention
+
+The serverless stage variable is been set dynamically in serverless.yml to:
+
+`{stage}{api-version}` ie. `devv0101`
+
+Doing this will create a new deployment whenever we change the the stage name or the api version
+
+The `{stage}` variable is been set by NODE_ENV
+
+### API Versioning
+
+The plugin serverless-domain-manager is used to set up a custom domain and a base path. This allow
+us to version the API using the base path and be able to separate the deployments of each
+version.
+
+Deploying the current configuration will create an API Gateway named `devv0100-serverless-da-boilerplate`. The stage of the API will be named `devv0100` and the default API url will be in the format: 
+
+`https://{apiId}.execute-api.us-east-1.amazonaws.com/devv0100`
+
+By setting up the customDomain in serverless.yml, we can set up a custom doamin and point our newly deploy API with versioning with the following format:
+
+`api.{region}.{stage}.${your-domain}/v01_00`
+
+### env.yml
+
+This file is used to store variables for environment variables or any constants used in the configuration. This file is imported to serverless.yml under custom.variables.ENV
+
+```
+default_env: &default_env
+ # variables that are global across env and regions
+ # DB, domain variables, etc
+
+dev-us-east-1:
+  <<: *default_env
+  # env and region specific variables
+```
+
+### CF References
+
+If you have deployed any infrastructure that needs to be referenced you can do so in the custom.stackOutputs section of the serverless.yml:
+
+`lambdaSubnet1: "${cf:${self:custom.variables.ENV.STACK_NAME}.SubnetLambdaPrivateId}"`
+
+### Serverless Pattern
+
+The project is setup in a [Service Pattern](https://serverless.com/blog/serverless-architecture-code-patterns/). In the Services Pattern, a single Lambda function can
+handle a few (~4) jobs that are usually related. In this case, they share the same path.
+
+For example, a user lambda will handle all routes under the /user path. We provide a router to 
+abstract the logic of routing to your different functions. You can configure it however
+you want but this is the pattern that we have found to work for us.
+
+Benefits of the Service Pattern: 
+- Less Lambda functions that you need to manage.
+- Some separation of concerns still exists.
+- Teams can still work autonomously.
+- Faster deployments.
+- Theoretically better performance. When multiple jobs are within a Lambda function, there is a higher likelihood that Lambda function will be called more regularly, which means the Lambda will stay warm and users will run into less cold-starts.
+
+### Documentation
+
+serverless-plugin-split-stacks plugin is used to document our API Gateway. This will create
+models in API Gateway that can be used to describe the request and response documentation for each
+endpoint. This will also allow you to generate a swagger file and a client sdk for your API directly
+from the API Gateway console.
+
+Models are defined in JSON schema and stored in the /models folder.
+
+```
+$schema: "http://json-schema.org/draft-04/schema#"
+type: "object"
+properties:
+  status:
+    type: integer
+```
+
+This models are referenced in the documentation.yml and then used in the functions section of the serverless configuration
+to describe the request and response of the endpoints.
 
 ## Development
 
-Creating and deploying a new function takes two steps, which you can see in action with this repo's default Hello World function (if you're already familiar with Serverless, you're probably familiar with these steps).
+Creating and deploying a new function takes two steps, which you can see in action with this repo's default app-info function
 
-#### 1. Add your function to `serverless.yml`
+### 1. Add a new function
 
-In the functions section of [`./serverless.yml`](./serverless.yml), you have to add your new function like so:
+Add a new function definition under /functions. Like so:
+
+```yaml
+  handler: src/hello/index.default
+  events:
+    - http:
+        path: hello
+        method: get
+    # Ping every 5 minutes to avoid cold starts
+    - schedule:
+        rate: rate(5 minutes)
+        enabled: true
+```
+
+In the serverless.yml, reference the file you created to tell serverless about our new function
 
 ```yaml
 functions:
-  hello:
-    handler: src/hello.default
-    events:
-      - http:
-          path: hello
-          method: get
-      # Ping every 5 minutes to avoid cold starts
-      - schedule:
-          rate: rate(5 minutes)
-          enabled: true
+  misc: ${file(functions/misc.yml)}
+  hello: ${file(functions/hello.yml)}
 ```
 
-Ignoring the scheduling event, you can see here that we're setting up a function named `hello` with a handler at `src/hello.js` (the `.default` piece is just indicating that the function to run will be the default export from that file). The `http` event says that this function will run when an http event is triggered (on AWS, this happens via API Gateway).
+Ignoring the scheduling event, you can see here that we're setting up a function named `hello` with a handler at `src/hello/index.js` (the `.default` piece is just indicating that the function to run will be the default export from that file). The `http` event says that this function will run when an http event is triggered (on AWS, this happens via API Gateway).
 
-#### 2. Create your function
+### 2. Set up the route.js
 
-This starter kit's Hello World function (which you will of course get rid of) can be found at [`./src/hello.js`](./src/hello.js). There you can see a basic function that's intended to work in conjunction with API Gateway (i.e., it is web-accessible). Like most Serverless functions, the `hello` function accepts an event, context, and callback. When your function is completed, you execute the callback with your response. (This is all basic Serverless; if you've never used it, be sure to read through [their docs](https://serverless.com/framework/docs/).
+Since we said that we are using the Service Pattern, we need to define a JSON file which states
+what routes will our new function handle.
 
-------
+Create a new file src/hello/routes.js:
+```
+import handlers from './handlers';
+
+export default {
+    '/hello': {
+        GET: {
+            handler: handlers.hello,
+            response: {
+                headers: {},
+                statusCode: 200,
+            },
+        },
+    },
+};
+```
+
+Here we are defining that our function will call the handlers.hello function when a GET method is called
+for the /hello endpoint.
+
+### 3. Define your handler
+
+Create a file /src/hello/handlers.js that exposes a function of your handler.
+
+```js
+import { log, utils } from 'lambda-utils';
+
+const TAG = 'hello::handlers';
+
+async function hello(_event, context, routeInfo) {
+    const FUNCTION_TAG = 'hello';
+    log.debug(TAG, `${FUNCTION_TAG}_EVENT_INIT`);
+
+    const { statusCode } = routeInfo.response;
+    return {
+        statusCode,
+        headers: null,
+        body: {
+            hello: "hello there traveler"
+        },
+    };
+}
+
+export default {
+    hello,
+};
+```
+
+We created a function called hello and export it. This will be our handler that will be executed
+via our API.
+
+### 4. The routing magic
+
+Our hello handler is not the actual function/handler that AWS runs first. The index.js exports this default "handler" that we are talking about.
+
+```js
+import { lambdaWrapper } from 'lambda-utils';
+
+import routes from './routes';
+
+export default lambdaWrapper(routes, 'hello');
+```
+
+Here we use lambdaWrapper to set up our routes and name
+our lambda for logging purposes. This will take care of receiving the AWS event, parsing it, and calling
+the corresponding lambda that was set up in routes.js
+
+### Test/Debugging
 
 You can develop and test your lambda functions locally in a few different ways.
 
@@ -87,7 +241,7 @@ You can develop and test your lambda functions locally in a few different ways.
 To run the hello function with the event data defined in [`fixtures/event.json`](fixtures/event.json) (with live reloading), run:
 
 ```bash
-yarn watch:hello
+npm run watch:misc:get-app-info
 ```
 
 ### API Gateway-like local dev server
@@ -95,16 +249,7 @@ yarn watch:hello
 To spin up a local dev server that will more closely match the API Gateway endpoint/experience:
 
 ```bash
-yarn serve
-```
-
-### Test your functions with Jest
-
-Jest is installed as the testrunner. To create a test, co-locate your test with the file it's testing
-as `<filename>.test.js` and then run/watch tests with:
-
-```bash
-yarn test
+npm run serve:dev
 ```
 
 ### Adding new functions/files to Webpack
@@ -163,36 +308,5 @@ export default myFunc;
 
 ```
 
-Copying and pasting the above can be tedious, so we've added a higher order function to wrap your run-warm functions. You still need to config the ping in your `serverless.yml` file; then your function should look like this:
-
-```javascript
-import runWarm from './utils'
-
-const myFunc = (event, context, callback) => {
-  // Your function logic
-}
-
-export default runWarm(myFunc);
-```
-
-## Deploy
-
-Assuming you've already set up your default AWS credentials (or have set a different AWS profile via [the profile field](serverless.yml#L25)):
-
-```bash
-yarn deploy
-```
-
-`yarn deploy` will deploy to "dev" environment. You can deploy to `stage` or `production`
-with:
-
-```bash
-yarn deploy:stage
-
-# -- or --
-
-yarn deploy:production
-```
-
-After you've deployed, the output of the deploy script will give you the API endpoint
-for your deployed function(s), so you should be able to test the deployed API via that URL.
+Copying and pasting the above can be tedious, but we will take care of this if you are using the 
+lambdaWraper.
