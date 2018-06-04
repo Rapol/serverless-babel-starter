@@ -46,8 +46,6 @@ for your deployed function(s), so you should be able to test the deployed API vi
 
 Note: Currently, this starter kit specifically targets AWS.
 
-TODO: Update the rest of the readme
-
 ## Serverless Configuration
 
 ### Stage convention
@@ -56,7 +54,7 @@ The serverless stage variable is been set dynamically in serverless.yml to:
 
 `{stage}{api-version}` ie. `devv0101`
 
-Doing this will create a new deployment whenever we change the the stage name or the api version
+Doing this will create a new deployment whenever we change the stage name or the API version
 
 The `{stage}` variable is been set by NODE_ENV
 
@@ -66,11 +64,11 @@ The plugin serverless-domain-manager is used to set up a custom domain and a bas
 us to version the API using the base path and be able to separate the deployments of each
 version.
 
-Deploying the current configuration will create an API Gateway named `devv0100-serverless-da-boilerplate`. The stage of the API will be named `devv0100` and the default API url will be in the format: 
+Deploying the current configuration will create an API Gateway named `devv0100-serverless-service-name`. The stage of the API will be named `devv0100` and the default API url will be in the format: 
 
 `https://{apiId}.execute-api.us-east-1.amazonaws.com/devv0100`
 
-By setting up the customDomain in serverless.yml, we can set up a custom doamin and point our newly deploy API with versioning with the following format:
+By setting up the customDomain in serverless.yml, we can set up a custom domain and point our newly deploy API with versioning that has the following format:
 
 `api.{region}.{stage}.${your-domain}/v01_00`
 
@@ -92,12 +90,12 @@ dev-us-east-1:
 
 If you have deployed any infrastructure that needs to be referenced you can do so in the custom.stackOutputs section of the serverless.yml:
 
-`lambdaSubnet1: "${cf:${self:custom.variables.ENV.STACK_NAME}.SubnetLambdaPrivateId}"`
+`lambdaSubnet1: "${cf:your-stack-name.SubnetLambdaPrivateId}"`
 
 ### Serverless Pattern
 
 The project is setup in a [Service Pattern](https://serverless.com/blog/serverless-architecture-code-patterns/). In the Services Pattern, a single Lambda function can
-handle a few (~4) jobs that are usually related. In this case, they share the same path.
+handle a few jobs that are usually related. In this case, they share the same path.
 
 For example, a user lambda will handle all routes under the /user path. We provide a router to 
 abstract the logic of routing to your different functions. You can configure it however
@@ -105,8 +103,8 @@ you want but this is the pattern that we have found to work for us.
 
 Benefits of the Service Pattern: 
 - Less Lambda functions that you need to manage.
-- Some separation of concerns still exists.
-- Teams can still work autonomously.
+- Some separation of concerns exists.
+- Teams can work autonomously.
 - Faster deployments.
 - Theoretically better performance. When multiple jobs are within a Lambda function, there is a higher likelihood that Lambda function will be called more regularly, which means the Lambda will stay warm and users will run into less cold-starts.
 
@@ -132,11 +130,11 @@ to describe the request and response of the endpoints.
 
 ## Development
 
-Creating and deploying a new function takes two steps, which you can see in action with this repo's default app-info function
+Creating and deploying a new function takes four steps, which you can see in action with this repo's default app-info function
 
 ### 1. Add a new function
 
-Add a new function definition under /functions. Like so:
+Add a new file in /functions to define our new function
 
 ```yaml
   handler: src/hello/index.default
@@ -166,7 +164,8 @@ Since we said that we are using the Service Pattern, we need to define a JSON fi
 what routes will our new function handle.
 
 Create a new file src/hello/routes.js:
-```
+
+```js
 import handlers from './handlers';
 
 export default {

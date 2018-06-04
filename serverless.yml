@@ -1,4 +1,4 @@
-service: serverless-da-boilerplate
+service: serverless-boilerplate
 
 plugins:
   - serverless-webpack
